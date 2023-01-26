@@ -177,3 +177,108 @@ while True:
     if not tok:
         break
     print(tok)
+
+
+# Parsing rules
+
+precedence = (
+    ('right','AND'),
+    ('right','OR'),
+    ('right','NOT'),
+    ('right','PLUS','MINUS'),
+    ('right','TIMES','DIVIDE'), # TODO: mod shuold have the same precedence as these, somehow.
+    ('nonassoc', 'MOD')
+    ('right','UMINUS'),
+    )
+
+# dictionary of names
+names = { }
+
+def p_program(t):
+    '''program: PROGRAM identifier declarations compound-statement'''
+    t[0].code = "#include <stdio.h>\n" + t[2].code + t[3].code + t[4].code
+    print(t[0].code)
+
+def p_decls_decllist(t):
+    '''declarations : VAR declaration-list
+                    | empty'''
+
+def p_decllist_idlist(t):
+    '''declaration-list : identifier-list COLON type
+                        | identifier-list COMMA identifier'''
+
+def p_type(t):
+    '''type : INTEGER
+            | REAL'''
+
+def p_compstmt_stmtlist(t):
+    '''compound-statement : BEGIN statement-list END'''
+
+def p_stmtlist_stmt(t):
+    '''statement-list : statement
+                      | statement-list SEMICOLON statement'''
+
+def p_statement(t):
+    '''statement : identifier ASSIGN expression
+                 | IF expression THEN statement ELSE statement 
+                 | IF expression THEN statement 
+                 | WHILE expression DO statement 
+                 | compound-statement
+                 | PRINT LPAREN expression RPAREN
+                 | SWITCH expression OF cases default-cases DONE'''
+
+def p_defcases(t):
+    '''default-cases : DEFAULT statement SEMICOLON
+                     | empty'''
+
+def p_cases(t):
+    '''cases : constant-list COLON statement SEMICOLON cases
+             | empty'''
+
+def p_constant_list(t):
+    '''constant-list : constant 
+                     | constant-list COMMA constant '''
+
+def p_constant(t):
+    '''constant : real 
+                | integer'''
+
+def p_expressions_term(t):
+    '''expressions : integer
+                   | real
+                   | identifier'''
+def p_expressions_op(t):
+       '''expressions : expression PLUS expression
+                   | expression MINUS expression
+                   | expression MUL expression
+                   | expression DIV expression
+                   | MINUS expression'''
+def p_expressions_mod(t):
+       '''expressions : expression MOD expression'''
+def p_expressions_relop(t):
+       '''expressions : expression LT expression
+                   | expression EQ expression
+                   | expression GT expression
+                   | expression NEQ expression
+                   | expression LTEQ expression
+                   | expression GTEQ expression'''
+def p_expressions_logic(t):
+       '''expressions : expression AND expression
+                   | expression OR expression
+                   | NOT expression'''
+def p_expressions_paren(t):
+       '''expressions : LPAREN expression RPAREN'''
+
+def p_error(t):
+    print("Syntax error at '%s'" % t.value)
+
+
+import ply.yacc as yacc
+parser = yacc.yacc()
+
+while True:
+    try:
+        s = input('calc > ')   # Use raw_input on Python 2
+    except EOFError:
+        break
+    parser.parse(s)
