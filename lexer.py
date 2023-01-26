@@ -10,7 +10,7 @@ declarations    : VAR declaration-list
                 | empty
                 
 declaration-list: identifier-list COLON type
-                | identifier-list COMMA identifier
+                | declaration-list SEMICOLON identifier-list COLON type
                 
 type            : INTEGER
                 | REAL
@@ -194,22 +194,66 @@ precedence = (
 # dictionary of names
 names = { }
 
+int_identifiers = []
+float_identifiers = []
+tmp_int_ids = []
+tmp_float_ids = []
+
 def p_program(t):
     '''program: PROGRAM identifier declarations compound-statement'''
     t[0].code = "#include <stdio.h>\n" + t[2].code + t[3].code + t[4].code
     print(t[0].code)
 
 def p_decls_decllist(t):
-    '''declarations : VAR declaration-list
-                    | empty'''
+    '''declarations : VAR declaration-list'''
+    t[0].code = ""
+    if(len(int_identifiers) != 0):
+        t[0].code += "int "
+        for id in int_identifiers:
+            t[0].code += id + ", "
+        t[0].code = t[0].code[:-2] + ";\n"
 
-def p_decllist_idlist(t):
-    '''declaration-list : identifier-list COLON type
-                        | identifier-list COMMA identifier'''
+    if(len(int_identifiers) != 0):
+        t[0].code += "float "
+        for id in int_identifiers:
+            t[0].code += id + ", "
+        t[0].code = t[0].code[:-2] + ";\n"
+        
+def p_decls_decllist_empty(t):
+    '''declarations : empty'''
+    t[0].code = ""
+    
+
+def p_decllist_idlist_type(t):
+    '''declaration-list : identifier-list COLON type'''
+    if t[3].value == "int":
+        int_identifiers.append(t[1].ids)
+    elif t[3].value == "real":
+        float_identifiers.append(t[1].ids)
+
+
+
+def p_decllist_idlist_more(t):
+    '''declaration-list : declaration-list SEMICOLON identifier-list COLON type'''
+    if t[5].value == "int":
+        int_identifiers.append(t[3].ids)
+    elif t[5].value == "real":
+        float_identifiers.append(t[3].ids)
+
+def p_idlist_id(t):
+    '''identifier-list : identifier'''
+    t[0].ids = [t[1].value] 
+
+def p_idlist_more(t):
+    '''identifier-list : identifier-list COMMA identifier'''
+    t[0].ids = []
+    t[0].ids.append(t[1].ids)
+    t[0].ids.append(t[3].value)
 
 def p_type(t):
     '''type : INTEGER
             | REAL'''
+    t[0].type = t[1].value
 
 def p_compstmt_stmtlist(t):
     '''compound-statement : BEGIN statement-list END'''
@@ -253,6 +297,7 @@ def p_expressions_op(t):
                    | expression MUL expression
                    | expression DIV expression
                    | MINUS expression'''
+        
 def p_expressions_mod(t):
        '''expressions : expression MOD expression'''
 def p_expressions_relop(t):
