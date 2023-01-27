@@ -1,5 +1,10 @@
 import ply.lex as lex
 import ply.yacc as yacc
+import Parse
+
+program = '''
+   program abcad var abc : int begin abc := 2 + 3 end
+  '''
 
 '''
 Grammar:
@@ -167,10 +172,6 @@ def t_error(t):
 
 lexer = lex.lex()
 
-program = '''
-   program abc var abc : int begin abc = 2 + 3; end
-  '''
-
 lexer.input(program)
 
 while True:
@@ -192,6 +193,8 @@ precedence = (
 # dictionary of names
 names = {}
 
+start = 'program'
+
 int_identifiers = []
 float_identifiers = []
 tmp_int_ids = []
@@ -200,56 +203,65 @@ tmp_float_ids = []
 
 def p_program(t):
     '''program : PROGRAM ID declarations compound-statement'''
-    t[0].code = "#include <stdio.h>\n" + t[2].code + t[3].code + t[4].code
+    print(int_identifiers)
+    print(float_identifiers)
+    t[0] = Parse.ParseObj()
+    print("HERE")
+    print(t[0])
+    print(t[3])
+    print(t[4])
+    t[0].code = "#include <stdio.h>\n" + t[3].code + "int main()\n{\n" + t[4].code + "\n" + "}"
     print(t[0].code)
 
 
 def p_decls_decllist(t):
     '''declarations : VAR declaration-list'''
+    t[0] = Parse.ParseObj()
     t[0].code = ""
     if len(int_identifiers) != 0:
         t[0].code += "int "
         for id in int_identifiers:
-            t[0].code += id + ", "
+            t[0].code += id[0] + ", "
         t[0].code = t[0].code[:-2] + ";\n"
 
     if len(int_identifiers) != 0:
         t[0].code += "float "
         for id in int_identifiers:
-            t[0].code += id + ", "
+            t[0].code += id[0] + ", "
         t[0].code = t[0].code[:-2] + ";\n"
 
 
 def p_decls_decllist_empty(t):
     '''declarations : '''
+    t[0] = Parse.ParseObj()
     t[0].code = ""
 
 
 def p_decllist_idlist_type(t):
     '''declaration-list : identifier-list COLON type'''
-    if t[3].value == "int":
+    if t[3].type == "int":
         int_identifiers.append(t[1].ids)
-    elif t[3].value == "real":
+    elif t[3].type == "real":
         float_identifiers.append(t[1].ids)
 
 
 def p_decllist_idlist_more(t):
     '''declaration-list : declaration-list SEMICOLON identifier-list COLON type'''
-    if t[5].value == "int":
+    if t[5].type == "int":
         int_identifiers.append(t[3].ids)
-    elif t[5].value == "real":
+    elif t[5].type == "real":
         float_identifiers.append(t[3].ids)
 
 
 def p_idlist_id(t):
     '''identifier-list : ID'''
-    print("HERE")
-    print(t[0])
+    t[0] = Parse.ParseObj()
     t[0].ids = [t[1]]
 
 
 def p_idlist_more(t):
     '''identifier-list : identifier-list COMMA ID'''
+    t[0] = Parse.ParseObj()
     t[0].ids = []
     t[0].ids.append(t[1].ids)
     t[0].ids.append(t[3].value)
@@ -258,25 +270,36 @@ def p_idlist_more(t):
 def p_type(t):
     '''type : INTEGER
             | REAL'''
-    t[0].type = t[1].value
+    t[0] = Parse.ParseObj()
+    t[0].type = t[1]
 
 
 def p_compstmt_stmtlist(t):
     '''compound-statement : BEGIN statement-list END'''
+    t[0] = Parse.ParseObj()
+    t[0].code = t[2].code
 
 
 def p_stmtlist_stmt(t):
     '''statement-list : statement'''
+    t[0] = Parse.ParseObj()
+    t[0].code = t[1].code
 
 def p_stmtlist_stmt_more(t):
     '''statement-list : statement-list SEMICOLON statement'''
+    t[0] = Parse.ParseObj()
     t[0].code = t[1].code + "\n" + t[3].code
 
 def p_statement_compstmt(t):
     '''statement : compound-statement'''
+    t[0] = Parse.ParseObj()
+    t[0].code = t[1].code
 
 def p_statement_assign(t):
     '''statement : ID ASSIGN expression'''
+    t[0] = Parse.ParseObj()
+    t[0].code = t[1] + "=" + t[3].code + ";"
+
 def p_statement_ifthenelse(t):
     '''statement : IF expression THEN statement ELSE statement'''
 def p_statement_ifthen(t):
@@ -304,10 +327,11 @@ def p_constant(t):
 
 
 def p_expressions_term(t):
-    '''expression : INTEGER
-                   | REAL
+    '''expression : INTEGER_CONSTANT
+                   | REAL_CONSTANT
                    | ID'''
-    t[0].code = t[1].value
+    t[0] = Parse.ParseObj()
+    t[0].code = t[1]
     # TODO: type and scope checking for identifiers: see what idlist it's in
     # identifier.value = variable name
     t[0].type = t[1]
@@ -319,8 +343,8 @@ def p_expressions_op(t):
                    | expression MUL expression
                    | expression DIV expression
                    '''
-    #TODO: is t[2].value correct?
-    t[0].code = t[1].code + t[2].value + t[3].code
+    t[0] = Parse.ParseObj()
+    t[0].code = t[1].code + t[2] + t[3].code
     """ if t[2] == '+':
         t[0] = t[1] + t[3]
     elif t[2] == '-':
@@ -365,6 +389,4 @@ def p_error(t):
 
 
 parser = yacc.yacc()
-
-while True:
-    parser.parse(program)
+parser.parse(program)
