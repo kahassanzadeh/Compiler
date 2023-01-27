@@ -2,10 +2,12 @@ import ply.lex as lex
 import ply.yacc as yacc
 import Parse
 
+# program = '''
+#    program abcad var abc : int ; a , b : real begin abc := 2 + 3 end
+#   '''
 program = '''
-   program abcad var abc : int begin abc := 2 + 3 end
-  '''
-
+program abcad var abc : int ; a : int begin if a < b then a := 3; if a > b then a := 2 + 2 end
+'''
 '''
 Grammar:
 
@@ -180,8 +182,9 @@ while True:
         break
     print(tok)
 
-
 precedence = (
+    ("nonassoc", 'IF'),
+    ("nonassoc", 'ELSE'),
     ('right', 'AND'),
     ('right', 'OR'),
     ('right', 'NOT'),
@@ -203,13 +206,13 @@ tmp_float_ids = []
 
 def p_program(t):
     '''program : PROGRAM ID declarations compound-statement'''
-    print(int_identifiers)
-    print(float_identifiers)
+    # print(int_identifiers)
+    # print(float_identifiers)
     t[0] = Parse.ParseObj()
-    print("HERE")
+    # print("HERE")
     print(t[0])
-    print(t[3])
-    print(t[4])
+    # print(t[3])
+    # print(t[4])
     t[0].code = "#include <stdio.h>\n" + t[3].code + "int main()\n{\n" + t[4].code + "\n" + "}"
     print(t[0].code)
 
@@ -239,8 +242,10 @@ def p_decls_decllist_empty(t):
 
 def p_decllist_idlist_type(t):
     '''declaration-list : identifier-list COLON type'''
+    # print(t[3])
     if t[3].type == "int":
         int_identifiers.append(t[1].ids)
+        # print(t.lexer.lineno)
     elif t[3].type == "real":
         float_identifiers.append(t[1].ids)
 
@@ -249,6 +254,7 @@ def p_decllist_idlist_more(t):
     '''declaration-list : declaration-list SEMICOLON identifier-list COLON type'''
     if t[5].type == "int":
         int_identifiers.append(t[3].ids)
+        # print(t.lexer.lineno)
     elif t[5].type == "real":
         float_identifiers.append(t[3].ids)
 
@@ -264,7 +270,7 @@ def p_idlist_more(t):
     t[0] = Parse.ParseObj()
     t[0].ids = []
     t[0].ids.append(t[1].ids)
-    t[0].ids.append(t[3].value)
+    t[0].ids.append(t[3])
 
 
 def p_type(t):
@@ -285,31 +291,46 @@ def p_stmtlist_stmt(t):
     t[0] = Parse.ParseObj()
     t[0].code = t[1].code
 
+
 def p_stmtlist_stmt_more(t):
     '''statement-list : statement-list SEMICOLON statement'''
     t[0] = Parse.ParseObj()
     t[0].code = t[1].code + "\n" + t[3].code
+
 
 def p_statement_compstmt(t):
     '''statement : compound-statement'''
     t[0] = Parse.ParseObj()
     t[0].code = t[1].code
 
+
 def p_statement_assign(t):
     '''statement : ID ASSIGN expression'''
     t[0] = Parse.ParseObj()
     t[0].code = t[1] + "=" + t[3].code + ";"
 
+
 def p_statement_ifthenelse(t):
-    '''statement : IF expression THEN statement ELSE statement'''
+    '''statement : IF expression THEN statement ELSE statement '''
+
+
 def p_statement_ifthen(t):
-    '''statement : IF expression THEN statement'''
+    '''statement : IF expression THEN statement %prec IF'''
+    print(t[4])
+    t[0] = Parse.ParseObj()
+    t[0].code = 'label_' + str(t.lexer.lineno) + ' if (' + t[2].code + ') ' + 'goto label_' + str(t.lexer.lineno + 2) + '\n' + 'goto label_' + str(
+        t.lexer.lineno + 3) + '\n' + 'label_'+ str(t.lexer.lineno + 2) + ' ' + t[4].code + '\n'
+    t.lexer.lineno += 3
+
 def p_statement_whiledo(t):
     '''statement : WHILE expression DO statement'''
+
+
 def p_statement_print(t):
     '''statement : PRINT LPAREN expression RPAREN'''
 
-#switch case stuff
+
+# switch case stuff
 """ def p_statement_switch(t):
     '''statement : SWITCH expression OF cases default-cases DONE'''
 def p_defcases(t):
@@ -345,6 +366,7 @@ def p_expressions_op(t):
                    '''
     t[0] = Parse.ParseObj()
     t[0].code = t[1].code + t[2] + t[3].code
+
     """ if t[2] == '+':
         t[0] = t[1] + t[3]
     elif t[2] == '-':
@@ -359,10 +381,16 @@ def p_expressions_op(t):
 
 def p_expressions_umin(t):
     '''expression : MINUS expression %prec UMINUS'''
+    t[0] = Parse.ParseObj()
+    t[0].code = '-' + t[2].code
+
+
 def p_expressions_mod(t):
     '''expression : expression MOD expression'''
-    #t[0] = t[1] % t[3]
-    t[0].code = t[1].code + t[2].value + t[3].code
+    # t[0] = t[1] % t[3]
+    t[0] = Parse.ParseObj()
+    t[0].code = t[1].code + '%' + t[3].code
+
 
 def p_expressions_relop(t):
     '''expression : expression LT expression
@@ -371,7 +399,8 @@ def p_expressions_relop(t):
                    | expression NEQ expression
                    | expression LTEQ expression
                    | expression GTEQ expression'''
-
+    t[0] = Parse.ParseObj()
+    t[0].code = t[1].code + t[2] + t[3].code
 
 
 def p_expressions_logic(t):
