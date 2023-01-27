@@ -251,6 +251,8 @@ def p_decls_decllist(t):
         for id in int_identifiers:
             t[0].code += id[0] + ", "
         t[0].code = t[0].code[:-2] + ";\n"
+    #     print(t[0].code)
+    # print(float_identifiers)
 
     if len(float_identifiers) != 0:
         t[0].code += "float "
@@ -275,11 +277,16 @@ def p_decllist_idlist_type(t):
 
 def p_decllist_idlist_more(t):
     '''declaration-list : declaration-list SEMICOLON identifier-list COLON type'''
+    global int_identifiers
     if t[5].type == "int":
+        # print(t[3].ids)
+        int_identifiers = sum(int_identifiers, [])
         for id in t[3].ids:
+            # print(int_identifiers)
             int_identifiers.append(id)
     elif t[5].type == "real":
         for id in t[3].ids:
+            # print(id)
             float_identifiers.append(id)
 
 
@@ -288,6 +295,7 @@ def p_idlist_id(t):
     t[0] = Parse.ParseObj()
     t[0].ids = []
     t[0].ids.append(t[1])
+
 
 
 def p_idlist_more(t):
@@ -340,19 +348,20 @@ def p_statement_ifthenelse(t):
     '''statement : IF expression THEN statement ELSE statement '''
     t[0] = Parse.ParseObj()
     t[0].code = 'label_' + str(t.lexer.lineno) + ': if (' + t[2].code + ') ' + 'goto label_' + str(
-        t.lexer.lineno + 2) + '\n' + 'goto label_' + str(
-        t.lexer.lineno + 4) + '\n' + 'label_' + str(t.lexer.lineno + 2) + ': ' + t[4].code + '\n' + 'goto label_' + str(
-        t.lexer.lineno + 5) + '\n' + 'label_' + str(t.lexer.lineno + 4) + ': ' + t[6].code + '\n'
+        t.lexer.lineno + 2) + ';\n' + 'goto label_' + str(
+        t.lexer.lineno + 4) + ';\n' + 'label_' + str(t.lexer.lineno + 2) + ': ' + t[
+                    4].code + '\n' + 'goto label_' + str(
+        t.lexer.lineno + 5) + ';\n' + 'label_' + str(t.lexer.lineno + 4) + ': ' + t[6].code + '\n'
     t.lexer.lineno += 5
 
 
 def p_statement_ifthen(t):
     '''statement : IF expression THEN statement %prec IF'''
-    print(t[4])
+    # print(t[4])
     t[0] = Parse.ParseObj()
     t[0].code = 'label_' + str(t.lexer.lineno) + ': if (' + t[2].code + ') ' + 'goto label_' + str(
-        t.lexer.lineno + 2) + '\n' + 'goto label_' + str(
-        t.lexer.lineno + 3) + '\n' + 'label_' + str(t.lexer.lineno + 2) + ': ' + t[4].code + '\n'
+        t.lexer.lineno + 2) + ';\n' + 'goto label_' + str(
+        t.lexer.lineno + 3) + ';\n' + 'label_' + str(t.lexer.lineno + 2) + ': ' + t[4].code + '\n'
     t.lexer.lineno += 3
 
 
@@ -360,8 +369,9 @@ def p_statement_whiledo(t):
     '''statement : WHILE expression DO statement'''
     t[0] = Parse.ParseObj()
     t[0].code = 'label_' + str(t.lexer.lineno) + ': if (' + t[2].code + ') ' + 'goto label_' + str(
-        t.lexer.lineno + 2) + '\n' + 'goto label_' + str(
-        t.lexer.lineno + 3) + '\n' + 'label_' + str(t.lexer.lineno + 2) + ': ' + t[4].code + '\n' + 'goto label_' + str(
+        t.lexer.lineno + 2) + ';\n' + 'goto label_' + str(
+        t.lexer.lineno + 3) + ';\n' + 'label_' + str(t.lexer.lineno + 2) + ': ' + t[
+                    4].code + '\n' + 'goto label_' + str(
         t.lexer.lineno)
     t.lexer.lineno += 3
 
@@ -410,10 +420,10 @@ def p_expressions_id(t):
     t[0] = Parse.ParseObj()
     t[0].code = t[1]
     t[0].address = t[1]
-    t[0].type = 'int'
-    # if [t[0].code] in int_identifiers:
+    # print(int_identifiers)
+    # if t[1] in int_identifiers:
     #     t[0].type = "int"
-    # elif [t[0].code] in float_identifiers:
+    # elif t[1] in float_identifiers:
     #     t[0].type = "float"
     # else:
     #     raise SyntaxError

@@ -1,1 +1,1 @@
-program abcad var abc : int ; a : int begin if a < b then a := 2; if a > b then a := 3 else a := 2 + 3 * 3 end
+program abcad var a , f : int; d : int; b , m : real begin if a < b then a := 2; if a > b then a := 3 else a := 2 + 3 * 3 end
