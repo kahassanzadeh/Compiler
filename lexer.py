@@ -6,7 +6,7 @@ import Parse
 #    program abcad var abc : int ; a , b : real begin abc := 2 + 3 end
 #   '''
 program = '''
-program abcad var abc : int ; a : int begin if a < b then a := 3; if a > b then a := 2 + 2 end
+program abcad var abc : int ; a : int begin while a < b do a := 2 end
 '''
 '''
 Grammar:
@@ -324,6 +324,9 @@ def p_statement_ifthen(t):
 
 def p_statement_whiledo(t):
     '''statement : WHILE expression DO statement'''
+    t[0] = Parse.ParseObj()
+    t[0].code = 'label_' + str(t.lexer.lineno) + ' if (' + t[2].code + ') ' + 'goto label_' + str(t.lexer.lineno + 2) + '\n' + 'goto label_' + str(
+        t.lexer.lineno + 3) + '\n' + 'label_'+ str(t.lexer.lineno + 2) + ' ' + t[4].code + '\n' + 'goto label_' + str(t.lexer.lineno)
 
 
 def p_statement_print(t):
