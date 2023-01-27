@@ -167,11 +167,11 @@ def t_error(t):
 
 lexer = lex.lex()
 
-data = '''
-   if 10 = 2.35
+program = '''
+   program abc var abc : int begin abc = 2 + 3; end
   '''
 
-lexer.input(data)
+lexer.input(program)
 
 while True:
     tok = lexer.token()
@@ -185,8 +185,7 @@ precedence = (
     ('right', 'OR'),
     ('right', 'NOT'),
     ('right', 'PLUS', 'MINUS'),
-    ('right', 'TIMES', 'DIVIDE'),  # TODO: mod shuold have the same precedence as these, somehow.
-    ('nonassoc', 'MOD'),
+    ('right', 'MUL', 'DIV', 'MOD'),
     ('right', 'UMINUS')
 )
 
@@ -200,7 +199,7 @@ tmp_float_ids = []
 
 
 def p_program(t):
-    '''program: PROGRAM identifier declarations compound-statement'''
+    '''program : PROGRAM ID declarations compound-statement'''
     t[0].code = "#include <stdio.h>\n" + t[2].code + t[3].code + t[4].code
     print(t[0].code)
 
@@ -222,7 +221,7 @@ def p_decls_decllist(t):
 
 
 def p_decls_decllist_empty(t):
-    '''declarations : empty'''
+    '''declarations : '''
     t[0].code = ""
 
 
@@ -243,12 +242,14 @@ def p_decllist_idlist_more(t):
 
 
 def p_idlist_id(t):
-    '''identifier-list : identifier'''
-    t[0].ids = [t[1].value]
+    '''identifier-list : ID'''
+    print("HERE")
+    print(t[0])
+    t[0].ids = [t[1]]
 
 
 def p_idlist_more(t):
-    '''identifier-list : identifier-list COMMA identifier'''
+    '''identifier-list : identifier-list COMMA ID'''
     t[0].ids = []
     t[0].ids.append(t[1].ids)
     t[0].ids.append(t[3].value)
@@ -265,53 +266,62 @@ def p_compstmt_stmtlist(t):
 
 
 def p_stmtlist_stmt(t):
-    '''statement-list : statement
-                      | statement-list SEMICOLON statement'''
+    '''statement-list : statement'''
 
+def p_stmtlist_stmt_more(t):
+    '''statement-list : statement-list SEMICOLON statement'''
+    t[0].code = t[1].code + "\n" + t[3].code
 
-def p_statement(t):
-    '''statement : identifier ASSIGN expression
-                 | IF expression THEN statement ELSE statement
-                 | IF expression THEN statement
-                 | WHILE expression DO statement
-                 | compound-statement
-                 | PRINT LPAREN expression RPAREN
-                 | SWITCH expression OF cases default-cases DONE'''
+def p_statement_compstmt(t):
+    '''statement : compound-statement'''
 
+def p_statement_assign(t):
+    '''statement : ID ASSIGN expression'''
+def p_statement_ifthenelse(t):
+    '''statement : IF expression THEN statement ELSE statement'''
+def p_statement_ifthen(t):
+    '''statement : IF expression THEN statement'''
+def p_statement_whiledo(t):
+    '''statement : WHILE expression DO statement'''
+def p_statement_print(t):
+    '''statement : PRINT LPAREN expression RPAREN'''
 
+#switch case stuff
+""" def p_statement_switch(t):
+    '''statement : SWITCH expression OF cases default-cases DONE'''
 def p_defcases(t):
     '''default-cases : DEFAULT statement SEMICOLON
                      | empty'''
-
-
 def p_cases(t):
     '''cases : constant-list COLON statement SEMICOLON cases
-             | empty'''
-
-
+             | empty'''         
 def p_constant_list(t):
     '''constant-list : constant
                      | constant-list COMMA constant '''
-
-
 def p_constant(t):
     '''constant : real
-                | integer'''
+                | integer''' """
 
 
 def p_expressions_term(t):
-    '''expressions : integer
-                   | real
-                   | identifier'''
+    '''expression : INTEGER
+                   | REAL
+                   | ID'''
+    t[0].code = t[1].value
+    # TODO: type and scope checking for identifiers: see what idlist it's in
+    # identifier.value = variable name
+    t[0].type = t[1]
 
 
 def p_expressions_op(t):
-    '''expressions : expression PLUS expression
+    '''expression : expression PLUS expression
                    | expression MINUS expression
                    | expression MUL expression
                    | expression DIV expression
                    '''
-    if t[2] == '+':
+    #TODO: is t[2].value correct?
+    t[0].code = t[1].code + t[2].value + t[3].code
+    """ if t[2] == '+':
         t[0] = t[1] + t[3]
     elif t[2] == '-':
         t[0] = t[1] - t[3]
@@ -320,32 +330,34 @@ def p_expressions_op(t):
     elif t[2] == '/':
         if t[3] == 0:
             raise ZeroDivisionError
-        t[0] = t[1] / t[3]
+        t[0] = t[1] / t[3] """
 
 
+def p_expressions_umin(t):
+    '''expression : MINUS expression %prec UMINUS'''
 def p_expressions_mod(t):
-    '''expressions : expression MOD expression'''
-    t[0] = t[1] % t[3]
-
+    '''expression : expression MOD expression'''
+    #t[0] = t[1] % t[3]
+    t[0].code = t[1].code + t[2].value + t[3].code
 
 def p_expressions_relop(t):
-    '''expressions : expression '<' expression
-                   | expression '=' expression
-                   | expression '>' expression
-                   | expression '<>' expression
-                   | expression '<=' expression
-                   | expression '>=' expression'''
+    '''expression : expression LT expression
+                   | expression EQ expression
+                   | expression GT expression
+                   | expression NEQ expression
+                   | expression LTEQ expression
+                   | expression GTEQ expression'''
 
 
 
 def p_expressions_logic(t):
-    '''expressions : expression AND expression
+    '''expression : expression AND expression
                    | expression OR expression
                    | NOT expression'''
 
 
 def p_expressions_paren(t):
-    '''expressions : LPAREN expression RPAREN'''
+    '''expression : LPAREN expression RPAREN'''
 
 
 def p_error(t):
@@ -355,8 +367,4 @@ def p_error(t):
 parser = yacc.yacc()
 
 while True:
-    try:
-        s = input('calc > ')  # Use raw_input on Python 2
-    except EOFError:
-        break
-    parser.parse(s)
+    parser.parse(program)
