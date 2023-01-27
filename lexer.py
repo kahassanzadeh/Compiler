@@ -2,9 +2,12 @@ import ply.lex as lex
 import ply.yacc as yacc
 import Parse
 
-program = '''
-    program abcad var abc : int ; a : int begin while a < b do a := 2 + 3 * 3 end
-   '''
+program = ''
+with open('input.txt', 'r') as f:
+    program = f.read()
+# program = '''
+#     program abcad var abc : int ; a : int begin if a < b then a := 2; if a > b then a := 3 else a := 2 + 3 * 3 end
+#    '''
 """ program = '''
 program abcad var abc : int ; a : int begin if a = b then a := 2 + 3 * 3 end
 ''' """
@@ -235,7 +238,8 @@ def p_program(t):
 
     t[0].code = "#include <stdio.h>\n" + t[3].code + temp_int_code + temp_float_code + \
                 "int main()\n{\n" + t[4].code + "\n" + "}"
-    print(t[0].code)
+    with open('output.txt', 'w') as f:
+        f.write(t[0].code)
 
 
 def p_decls_decllist(t):
@@ -335,10 +339,10 @@ def p_statement_assign(t):
 def p_statement_ifthenelse(t):
     '''statement : IF expression THEN statement ELSE statement '''
     t[0] = Parse.ParseObj()
-    t[0].code = 'label_' + str(t.lexer.lineno) + ' if (' + t[2].code + ') ' + 'goto label_' + str(
+    t[0].code = 'label_' + str(t.lexer.lineno) + ': if (' + t[2].code + ') ' + 'goto label_' + str(
         t.lexer.lineno + 2) + '\n' + 'goto label_' + str(
-        t.lexer.lineno + 4) + '\n' + 'label_' + str(t.lexer.lineno + 2) + ' ' + t[4].code + '\n' + 'goto label_' + str(
-        t.lexer.lineno + 5) + '\n' + 'label_' + str(t.lexer.lineno + 4) + ' ' + t[6].code + '\n'
+        t.lexer.lineno + 4) + '\n' + 'label_' + str(t.lexer.lineno + 2) + ': ' + t[4].code + '\n' + 'goto label_' + str(
+        t.lexer.lineno + 5) + '\n' + 'label_' + str(t.lexer.lineno + 4) + ': ' + t[6].code + '\n'
     t.lexer.lineno += 5
 
 
@@ -346,17 +350,18 @@ def p_statement_ifthen(t):
     '''statement : IF expression THEN statement %prec IF'''
     print(t[4])
     t[0] = Parse.ParseObj()
-    t[0].code = 'label_' + str(t.lexer.lineno) + ' if (' + t[2].code + ') ' + 'goto label_' + str(
+    t[0].code = 'label_' + str(t.lexer.lineno) + ': if (' + t[2].code + ') ' + 'goto label_' + str(
         t.lexer.lineno + 2) + '\n' + 'goto label_' + str(
-        t.lexer.lineno + 3) + '\n' + 'label_' + str(t.lexer.lineno + 2) + ' ' + t[4].code + '\n'
+        t.lexer.lineno + 3) + '\n' + 'label_' + str(t.lexer.lineno + 2) + ': ' + t[4].code + '\n'
     t.lexer.lineno += 3
+
 
 def p_statement_whiledo(t):
     '''statement : WHILE expression DO statement'''
     t[0] = Parse.ParseObj()
-    t[0].code = 'label_' + str(t.lexer.lineno) + ' if (' + t[2].code + ') ' + 'goto label_' + str(
+    t[0].code = 'label_' + str(t.lexer.lineno) + ': if (' + t[2].code + ') ' + 'goto label_' + str(
         t.lexer.lineno + 2) + '\n' + 'goto label_' + str(
-        t.lexer.lineno + 3) + '\n' + 'label_' + str(t.lexer.lineno + 2) + ' ' + t[4].code + '\n' + 'goto label_' + str(
+        t.lexer.lineno + 3) + '\n' + 'label_' + str(t.lexer.lineno + 2) + ': ' + t[4].code + '\n' + 'goto label_' + str(
         t.lexer.lineno)
     t.lexer.lineno += 3
 
