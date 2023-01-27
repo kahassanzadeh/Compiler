@@ -3,10 +3,10 @@ import ply.yacc as yacc
 import Parse
 
 program = '''
-    program abcad var abc : int ; a , b : real begin abc := 2 + 3 * 3; print(3*2) end
+    program abcad var abc : int ; a : int begin while a < b do a := 2 + 3 * 3 end
    '''
 """ program = '''
-program abcad var abc : int ; a : int begin while a < b do a := 2 + 3 * 3 end
+program abcad var abc : int ; a : int begin if a = b then a := 2 + 3 * 3 end
 ''' """
 
 '''
@@ -181,7 +181,7 @@ while True:
     tok = lexer.token()
     if not tok:
         break
-    #print(tok)
+    # print(tok)
 
 precedence = (
     ("nonassoc", 'IF'),
@@ -204,12 +204,13 @@ float_identifiers = []
 tmp_int_ids = []
 tmp_float_ids = []
 
+
 def new_tmp(typeof):
-    if(typeof == "int"):
+    if (typeof == "int"):
         current_count = len(tmp_int_ids)
         tmp_int_ids.append("temp_int_" + str(current_count + 1))
         return tmp_int_ids[-1]
-    elif(typeof == "float"):
+    elif (typeof == "float"):
         current_count = len(tmp_float_ids)
         tmp_float_ids.append("temp_float_" + str(current_count + 1))
         return tmp_float_ids[-1]
@@ -232,7 +233,7 @@ def p_program(t):
             temp_float_code = temp_float_code + t_float + ", "
         temp_float_code = temp_float_code[:-2] + ";\n"
 
-    t[0].code = "#include <stdio.h>\n" + t[3].code + temp_int_code + temp_float_code +\
+    t[0].code = "#include <stdio.h>\n" + t[3].code + temp_int_code + temp_float_code + \
                 "int main()\n{\n" + t[4].code + "\n" + "}"
     print(t[0].code)
 
@@ -333,20 +334,31 @@ def p_statement_assign(t):
 
 def p_statement_ifthenelse(t):
     '''statement : IF expression THEN statement ELSE statement '''
+    t[0] = Parse.ParseObj()
+    t[0].code = 'label_' + str(t.lexer.lineno) + ' if (' + t[2].code + ') ' + 'goto label_' + str(
+        t.lexer.lineno + 2) + '\n' + 'goto label_' + str(
+        t.lexer.lineno + 4) + '\n' + 'label_' + str(t.lexer.lineno + 2) + ' ' + t[4].code + '\n' + 'goto label_' + str(
+        t.lexer.lineno + 5) + '\n' + 'label_' + str(t.lexer.lineno + 4) + ' ' + t[6].code + '\n'
+    t.lexer.lineno += 5
 
 
 def p_statement_ifthen(t):
     '''statement : IF expression THEN statement %prec IF'''
+    print(t[4])
     t[0] = Parse.ParseObj()
-    t[0].code = 'label_' + str(t.lexer.lineno) + ' if (' + t[2].code + ') ' + 'goto label_' + str(t.lexer.lineno + 2) + '\n' + 'goto label_' + str(
-        t.lexer.lineno + 3) + '\n' + 'label_'+ str(t.lexer.lineno + 2) + ' ' + t[4].code + '\n'
+    t[0].code = 'label_' + str(t.lexer.lineno) + ' if (' + t[2].code + ') ' + 'goto label_' + str(
+        t.lexer.lineno + 2) + '\n' + 'goto label_' + str(
+        t.lexer.lineno + 3) + '\n' + 'label_' + str(t.lexer.lineno + 2) + ' ' + t[4].code + '\n'
     t.lexer.lineno += 3
 
 def p_statement_whiledo(t):
     '''statement : WHILE expression DO statement'''
     t[0] = Parse.ParseObj()
-    t[0].code = 'label_' + str(t.lexer.lineno) + ' if (' + t[2].code + ') ' + 'goto label_' + str(t.lexer.lineno + 2) + '\n' + 'goto label_' + str(
-        t.lexer.lineno + 3) + '\n' + 'label_'+ str(t.lexer.lineno + 2) + ' ' + t[4].code + '\n' + 'goto label_' + str(t.lexer.lineno)
+    t[0].code = 'label_' + str(t.lexer.lineno) + ' if (' + t[2].code + ') ' + 'goto label_' + str(
+        t.lexer.lineno + 2) + '\n' + 'goto label_' + str(
+        t.lexer.lineno + 3) + '\n' + 'label_' + str(t.lexer.lineno + 2) + ' ' + t[4].code + '\n' + 'goto label_' + str(
+        t.lexer.lineno)
+    t.lexer.lineno += 3
 
 
 def p_statement_print(t):
@@ -379,6 +391,7 @@ def p_expressions_int(t):
     t[0].address = t[1]
     t[0].type = "int"
 
+
 def p_expressions_float(t):
     '''expression : REAL_CONSTANT'''
     t[0] = Parse.ParseObj()
@@ -386,17 +399,20 @@ def p_expressions_float(t):
     t[0].address = t[1]
     t[0].type = "float"
 
+
 def p_expressions_id(t):
     '''expression : ID'''
     t[0] = Parse.ParseObj()
-    t[0].code = ""
+    t[0].code = t[1]
     t[0].address = t[1]
-    if [t[0].code] in int_identifiers:
-        t[0].type = "int"
-    elif [t[0].code] in float_identifiers:
-        t[0].type = "int"
-    else:
-        raise SyntaxError
+    t[0].type = 'int'
+    # if [t[0].code] in int_identifiers:
+    #     t[0].type = "int"
+    # elif [t[0].code] in float_identifiers:
+    #     t[0].type = "float"
+    # else:
+    #     raise SyntaxError
+
 
 def p_expressions_op(t):
     '''expression : expression PLUS expression
@@ -458,12 +474,14 @@ def p_expressions_logic(t):
     t[0].address = new_tmp(t[0].type)
     t[0].code = t[1].code + t[3].code + t[0].address + " = " + t[1].address + t[2] + t[3].address + ";\n"
 
+
 def p_expressions_not(t):
     '''expression : NOT expression'''
     t[0] = Parse.ParseObj()
     t[0].type = t[2].type
     t[0].address = new_tmp(t[2].type)
     t[0].code = t[2].code + t[0].address + " = " + t[1] + t[2].address + ";\n"
+
 
 def p_expressions_paren(t):
     '''expression : LPAREN expression RPAREN'''
@@ -475,6 +493,7 @@ def p_expressions_paren(t):
 
 def p_error(t):
     print("Syntax error at '%s'" % t.value)
+
 
 parser = yacc.yacc()
 parser.parse(program)
