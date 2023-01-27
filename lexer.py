@@ -2,12 +2,13 @@ import ply.lex as lex
 import ply.yacc as yacc
 import Parse
 
-# program = '''
-#    program abcad var abc : int ; a , b : real begin abc := 2 + 3 end
-#   '''
 program = '''
-program abcad var abc : int ; a : int begin while a < b do a := 2 end
-'''
+    program abcad var abc : int ; a , b : real begin abc := 2 + 3 * 3 end
+   '''
+""" program = '''
+program abcad var abc : int ; a : int begin while a < b do a := 2 + 3 * 3 end
+''' """
+
 '''
 Grammar:
 
@@ -180,7 +181,7 @@ while True:
     tok = lexer.token()
     if not tok:
         break
-    print(tok)
+    #print(tok)
 
 precedence = (
     ("nonassoc", 'IF'),
@@ -203,16 +204,20 @@ float_identifiers = []
 tmp_int_ids = []
 tmp_float_ids = []
 
+def new_tmp(typeof):
+    if(typeof == "int"):
+        current_count = len(tmp_int_ids)
+        tmp_int_ids.append("temp_int_" + str(current_count + 1))
+        return tmp_int_ids[-1]
+    elif(typeof == "float"):
+        current_count = len(tmp_float_ids)
+        tmp_float_ids.append("temp_float_" + str(current_count + 1))
+        return tmp_float_ids[-1]
+
 
 def p_program(t):
     '''program : PROGRAM ID declarations compound-statement'''
-    # print(int_identifiers)
-    # print(float_identifiers)
     t[0] = Parse.ParseObj()
-    # print("HERE")
-    print(t[0])
-    # print(t[3])
-    # print(t[4])
     t[0].code = "#include <stdio.h>\n" + t[3].code + "int main()\n{\n" + t[4].code + "\n" + "}"
     print(t[0].code)
 
@@ -242,10 +247,8 @@ def p_decls_decllist_empty(t):
 
 def p_decllist_idlist_type(t):
     '''declaration-list : identifier-list COLON type'''
-    # print(t[3])
     if t[3].type == "int":
         int_identifiers.append(t[1].ids)
-        # print(t.lexer.lineno)
     elif t[3].type == "real":
         float_identifiers.append(t[1].ids)
 
@@ -254,7 +257,6 @@ def p_decllist_idlist_more(t):
     '''declaration-list : declaration-list SEMICOLON identifier-list COLON type'''
     if t[5].type == "int":
         int_identifiers.append(t[3].ids)
-        # print(t.lexer.lineno)
     elif t[5].type == "real":
         float_identifiers.append(t[3].ids)
 
@@ -307,7 +309,7 @@ def p_statement_compstmt(t):
 def p_statement_assign(t):
     '''statement : ID ASSIGN expression'''
     t[0] = Parse.ParseObj()
-    t[0].code = t[1] + "=" + t[3].code + ";"
+    t[0].code = t[3].code + t[1] + "=" + t[3].address + ";"
 
 
 def p_statement_ifthenelse(t):
@@ -316,7 +318,6 @@ def p_statement_ifthenelse(t):
 
 def p_statement_ifthen(t):
     '''statement : IF expression THEN statement %prec IF'''
-    print(t[4])
     t[0] = Parse.ParseObj()
     t[0].code = 'label_' + str(t.lexer.lineno) + ' if (' + t[2].code + ') ' + 'goto label_' + str(t.lexer.lineno + 2) + '\n' + 'goto label_' + str(
         t.lexer.lineno + 3) + '\n' + 'label_'+ str(t.lexer.lineno + 2) + ' ' + t[4].code + '\n'
@@ -350,16 +351,31 @@ def p_constant(t):
                 | integer''' """
 
 
-def p_expressions_term(t):
-    '''expression : INTEGER_CONSTANT
-                   | REAL_CONSTANT
-                   | ID'''
+def p_expressions_int(t):
+    '''expression : INTEGER_CONSTANT'''
     t[0] = Parse.ParseObj()
-    t[0].code = t[1]
-    # TODO: type and scope checking for identifiers: see what idlist it's in
-    # identifier.value = variable name
-    t[0].type = t[1]
+    t[0].code = ""
+    t[0].address = t[1]
+    t[0].type = "int"
 
+def p_expressions_float(t):
+    '''expression : REAL_CONSTANT'''
+    t[0] = Parse.ParseObj()
+    t[0].code = ""
+    t[0].address = t[1]
+    t[0].type = "float"
+
+def p_expressions_id(t):
+    '''expression : ID'''
+    t[0] = Parse.ParseObj()
+    t[0].code = ""
+    t[0].address = t[1]
+    if [t[0].code] in int_identifiers:
+        t[0].type = "int"
+    elif [t[0].code] in float_identifiers:
+        t[0].type = "int"
+    else:
+        raise SyntaxError
 
 def p_expressions_op(t):
     '''expression : expression PLUS expression
@@ -368,31 +384,34 @@ def p_expressions_op(t):
                    | expression DIV expression
                    '''
     t[0] = Parse.ParseObj()
-    t[0].code = t[1].code + t[2] + t[3].code
-
-    """ if t[2] == '+':
-        t[0] = t[1] + t[3]
-    elif t[2] == '-':
-        t[0] = t[1] - t[3]
-    elif t[2] == '*':
-        t[0] = t[1] * t[3]
-    elif t[2] == '/':
-        if t[3] == 0:
-            raise ZeroDivisionError
-        t[0] = t[1] / t[3] """
+    type1 = t[1].type
+    type2 = t[3].type
+    t[0].type = "int"
+    if (type1 == 'float') or (type2 == "float"):
+        t[0].type = "float"
+    t[0].address = new_tmp(t[0].type)
+    t[0].code = t[1].code + t[3].code + t[0].address + " = " + t[1].address + t[2] + t[3].address + ";\n"
 
 
 def p_expressions_umin(t):
     '''expression : MINUS expression %prec UMINUS'''
     t[0] = Parse.ParseObj()
-    t[0].code = '-' + t[2].code
+    t[0].type = t[2].type
+    t[0].address = new_tmp(t[2].type)
+    t[0].code = t[2].code + t[0].address + " = " + t[1] + t[2].address + ";\n"
 
 
 def p_expressions_mod(t):
     '''expression : expression MOD expression'''
     # t[0] = t[1] % t[3]
     t[0] = Parse.ParseObj()
-    t[0].code = t[1].code + '%' + t[3].code
+    type1 = t[1].type
+    type2 = t[2].type
+    t[0].type = "int"
+    if (type1 == 'float') or (type2 == "float"):
+        raise SyntaxError
+    t[0].address = new_tmp(t[0].type)
+    t[0].code = t[1].code + t[3].code + t[0].address + " = " + t[1].address + "%" + t[3].address + ";\n"
 
 
 def p_expressions_relop(t):
@@ -408,17 +427,33 @@ def p_expressions_relop(t):
 
 def p_expressions_logic(t):
     '''expression : expression AND expression
-                   | expression OR expression
-                   | NOT expression'''
+                   | expression OR expression'''
+    t[0] = Parse.ParseObj()
+    type1 = t[1].type
+    type2 = t[3].type
+    t[0].type = "int"
+    if (type1 == 'float') or (type2 == "float"):
+        raise SyntaxError
+    t[0].address = new_tmp(t[0].type)
+    t[0].code = t[1].code + t[3].code + t[0].address + " = " + t[1].address + t[2] + t[3].address + ";\n"
 
-
+def p_expressions_not(t):
+    '''expression : NOT expression'''
+    t[0] = Parse.ParseObj()
+    t[0].type = t[2].type
+    t[0].address = new_tmp(t[2].type)
+    t[0].code = t[2].code + t[0].address + " = " + t[1] + t[2].address + ";\n"
+    
 def p_expressions_paren(t):
     '''expression : LPAREN expression RPAREN'''
+    t[0] = Parse.ParseObj()
+    t[0].address = t[2].address
+    t[0].type = t[2].type
+    t[0].code = "(" + t[2].code + ")"
 
 
 def p_error(t):
     print("Syntax error at '%s'" % t.value)
-
 
 parser = yacc.yacc()
 parser.parse(program)
