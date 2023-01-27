@@ -218,7 +218,9 @@ def new_tmp(typeof):
 def p_program(t):
     '''program : PROGRAM ID declarations compound-statement'''
     t[0] = Parse.ParseObj()
-    t[0].code = "#include <stdio.h>\n" + t[3].code + "int main()\n{\n" + t[4].code + "\n" + "}"
+    #for
+    t[0].code = "#include <stdio.h>\n" + t[3].code + \
+                "int main()\n{\n" + t[4].code + "\n" + "}"
     print(t[0].code)
 
 
@@ -232,9 +234,9 @@ def p_decls_decllist(t):
             t[0].code += id[0] + ", "
         t[0].code = t[0].code[:-2] + ";\n"
 
-    if len(int_identifiers) != 0:
+    if len(float_identifiers) != 0:
         t[0].code += "float "
-        for id in int_identifiers:
+        for id in float_identifiers:
             t[0].code += id[0] + ", "
         t[0].code = t[0].code[:-2] + ";\n"
 
@@ -256,22 +258,26 @@ def p_decllist_idlist_type(t):
 def p_decllist_idlist_more(t):
     '''declaration-list : declaration-list SEMICOLON identifier-list COLON type'''
     if t[5].type == "int":
-        int_identifiers.append(t[3].ids)
+        for id in t[3].ids:
+            int_identifiers.append(id)
     elif t[5].type == "real":
-        float_identifiers.append(t[3].ids)
+        for id in t[3].ids:
+            float_identifiers.append(id)
 
 
 def p_idlist_id(t):
     '''identifier-list : ID'''
     t[0] = Parse.ParseObj()
-    t[0].ids = [t[1]]
+    t[0].ids = []
+    t[0].ids.append(t[1])
 
 
 def p_idlist_more(t):
     '''identifier-list : identifier-list COMMA ID'''
     t[0] = Parse.ParseObj()
     t[0].ids = []
-    t[0].ids.append(t[1].ids)
+    for id in t[1].ids:
+        t[0].ids.append(id)
     t[0].ids.append(t[3])
 
 
@@ -443,7 +449,7 @@ def p_expressions_not(t):
     t[0].type = t[2].type
     t[0].address = new_tmp(t[2].type)
     t[0].code = t[2].code + t[0].address + " = " + t[1] + t[2].address + ";\n"
-    
+
 def p_expressions_paren(t):
     '''expression : LPAREN expression RPAREN'''
     t[0] = Parse.ParseObj()
