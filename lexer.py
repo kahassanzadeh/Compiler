@@ -218,8 +218,21 @@ def new_tmp(typeof):
 def p_program(t):
     '''program : PROGRAM ID declarations compound-statement'''
     t[0] = Parse.ParseObj()
-    #for
-    t[0].code = "#include <stdio.h>\n" + t[3].code + \
+    temp_int_code = ""
+    temp_float_code = ""
+    if (len(tmp_int_ids) != 0):
+        temp_int_code = "int "
+        for t_int in tmp_int_ids:
+            temp_int_code = temp_int_code + t_int + ", "
+        temp_int_code = temp_int_code[:-2] + ";\n"
+
+    if (len(tmp_float_ids) != 0):
+        temp_float_code = "float "
+        for t_float in tmp_float_ids:
+            temp_float_code = temp_float_code + t_float + ", "
+        temp_float_code = temp_float_code[:-2] + ";\n"
+
+    t[0].code = "#include <stdio.h>\n" + t[3].code + temp_int_code + temp_float_code +\
                 "int main()\n{\n" + t[4].code + "\n" + "}"
     print(t[0].code)
 
