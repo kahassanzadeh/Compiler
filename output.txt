@@ -1,0 +1,18 @@
+#include <stdio.h>
+int abc, a;
+int temp_int_1, temp_int_2;
+int main()
+{
+label_1: if (a<b) goto label_3
+goto label_4
+label_3: a=2;
+
+label_4: if (a>b) goto label_6
+goto label_8
+label_6: a=3;
+goto label_9
+label_8: temp_int_1 = 3*3;
+temp_int_2 = 2+temp_int_1;
+a=temp_int_2;
+
+}
