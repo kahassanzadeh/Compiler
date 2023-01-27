@@ -3,7 +3,7 @@ import ply.yacc as yacc
 import Parse
 
 program = '''
-    program abcad var abc : int ; a , b : real begin abc := 2 + 3 * 3 end
+    program abcad var abc : int ; a , b : real begin abc := 2 + 3 * 3; print(3*2) end
    '''
 """ program = '''
 program abcad var abc : int ; a : int begin while a < b do a := 2 + 3 * 3 end
@@ -351,6 +351,8 @@ def p_statement_whiledo(t):
 
 def p_statement_print(t):
     '''statement : PRINT LPAREN expression RPAREN'''
+    t[0] = Parse.ParseObj()
+    t[0].code = t[3].code + "printf(\"%d\\n\", " + t[3].address + ");\n"
 
 
 # switch case stuff
